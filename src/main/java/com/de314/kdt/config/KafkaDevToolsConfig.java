@@ -15,11 +15,11 @@ import java.util.List;
 @Data
 @Component
 @NoArgsConstructor
-@ConfigurationProperties(prefix="kbt", ignoreInvalidFields = true)
+@ConfigurationProperties(prefix="kdt", ignoreInvalidFields = true)
 public class KafkaDevToolsConfig {
 
     private KafkaProducerConfig producer;
-    private KafkaProducerConfig consumer;
+    private KafkaConsumerConfig consumer;
     private KafkaEnvironmentsConfig environments;
 
     @Data
@@ -35,5 +35,6 @@ public class KafkaDevToolsConfig {
     @Data
     public static class KafkaConsumerConfig {
         private boolean enabled;
+        private long idleThreshold;
     }
 }

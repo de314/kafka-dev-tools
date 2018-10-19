@@ -9,11 +9,12 @@ server:
   port: 8080
   context-path: /kdt
 
-kbt:
+kdt:
   producer:
     enabled: true
   consumer:
     enabled: true
+    idleThreshold: 1800000
   environments:
     customUrlsEnabled: true
     supportedEnvironments:

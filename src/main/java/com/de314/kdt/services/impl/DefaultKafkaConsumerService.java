@@ -1,5 +1,6 @@
 package com.de314.kdt.services.impl;
 
+import com.de314.kdt.config.KafkaDevToolsConfig;
 import com.de314.kdt.kakfa.BasicInMemMessageQueue;
 import com.de314.kdt.kakfa.BasicKafkaConsumerGroup;
 import com.de314.kdt.kakfa.KDTConsumerGroup;
@@ -7,18 +8,27 @@ import com.de314.kdt.models.KDTConsumerConfig;
 import com.de314.kdt.models.Page;
 import com.de314.kdt.services.KafkaConsumerService;
 import com.google.common.collect.Maps;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class DefaultKafkaConsumerService implements KafkaConsumerService {
 
+    private final long idleThreshold;
     private final Map<String, KDTConsumerGroup> repo;
 
-    public DefaultKafkaConsumerService() {
+    public DefaultKafkaConsumerService(
+            KafkaDevToolsConfig kafkaDevToolsConfig
+    ) {
+        this.idleThreshold = kafkaDevToolsConfig.getConsumer().getIdleThreshold();
         this.repo = Maps.newConcurrentMap();
     }
 
@@ -60,5 +70,21 @@ public class DefaultKafkaConsumerService implements KafkaConsumerService {
             consumer.shutdown();
         }
         return consumer;
+    }
+
+    @Scheduled(fixedRate = 300000)
+    public void cleanUp() {
+        Set<String> keys = repo.keySet();
+        long now = System.currentTimeMillis();
+        int count = 0;
+        for (String key : keys) {
+            long lastReadTime = repo.get(key).getQueue().getLastReadTime();
+            long readLatency = now - lastReadTime;
+            if (readLatency > idleThreshold) {
+                this.dispose(key);
+                count++;
+            }
+        }
+        log.info("Cleaning up " + count + " idle consumers");
     }
 }

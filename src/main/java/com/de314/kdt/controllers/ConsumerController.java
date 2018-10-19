@@ -54,13 +54,13 @@ public class ConsumerController {
         SupportedEnvironment kafkaEnv = kafkaEnvironmentRegistryService.findById(kEnvId);
         if (kafkaEnv == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .header("KBT-Error", "Unknown Environment: " + kEnvId)
+                    .header("KDT-Error", "Unknown Environment: " + kEnvId)
                     .body(null);
         }
         DeserializerInfoModel des = deserializerRegistryService.findById(deserializerId);
         if (des == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .header("KBT-Error", "Invalid deserializer id: " + deserializerId)
+                    .header("KDT-Error", "Invalid deserializer id: " + deserializerId)
                     .body(null);
         }
 

@@ -34,7 +34,7 @@ public class BasicKafkaConsumerGroup implements KDTConsumerGroup {
         assert(config.getValueDeserializer() != null);
 
         this.config = config;
-        this.clientId = "kbt-" + UUID.randomUUID().toString();
+        this.clientId = "kdt-" + UUID.randomUUID().toString();
         this.groupId = this.clientId;
 
         this.consumer = getConsumer();

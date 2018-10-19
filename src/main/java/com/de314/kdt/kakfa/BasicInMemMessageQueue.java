@@ -29,6 +29,7 @@ public class BasicInMemMessageQueue implements InMemMessageQueue {
 
     public BasicInMemMessageQueue(int maxSize) {
         messageQueue = new FixedSizeList<>(maxSize);
+        lastReadTime = System.currentTimeMillis();
     }
 
     protected boolean shouldPersist(ConsumerRecord<String, Object> record) {
