@@ -1,10 +1,12 @@
-package com.de314.kdt.services;
+package com.de314.kdt.services.impl;
 
 import com.de314.kdt.models.KafkaProduceMessageMetaModel;
 import com.de314.kdt.models.KafkaProduceRequestModel;
 import com.de314.kdt.models.ProducerRepsonseModel;
 import com.de314.kdt.models.SerializerInfoModel;
 import com.de314.kdt.models.SupportedEnvironment;
+import com.de314.kdt.services.KafkaEnvironmentRegistryService;
+import com.de314.kdt.services.KafkaProducerService;
 import com.google.common.collect.Maps;
 import lombok.Builder;
 import lombok.Data;
@@ -44,9 +46,9 @@ public class DefaultKafkaProducerService implements KafkaProducerService {
             SupportedEnvironment env = environmentRegistryService.findById(meta.getEnvironmentId());
             repo.put(id, new EnvironmentProducer(env, serializer.getClassName()));
         }
-        EnvironmentProducer envProducer = repo.get(id);
+        EnvironmentProducer envProducer = repo.get(req.getMeta().getId());
 
-        Object message = serializer.getPrepareRawFunc().apply(req.getRawMessage());
+        Object message = serializer.getPrepareRawFunc().apply(req.getRawMessage(), req);
 
         boolean sendMessage = req.getRawMessage() != null && envProducer != null;
 

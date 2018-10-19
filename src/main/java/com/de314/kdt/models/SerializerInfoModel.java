@@ -24,5 +24,9 @@ public class SerializerInfoModel implements Model {
     private Map<String, Object> meta;
 
     @JsonIgnore
-    private Function<String, Object> prepareRawFunc;
+    private DataPrepFunction prepareRawFunc;
+
+    public interface DataPrepFunction {
+        Object apply(String data, KafkaProduceRequestModel req);
+    }
 }

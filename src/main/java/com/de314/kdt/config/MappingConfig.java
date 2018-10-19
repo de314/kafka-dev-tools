@@ -4,6 +4,7 @@ import com.de314.kdt.kakfa.ErrorTolerantAvroObjectDeserializer;
 import com.de314.kdt.models.DeserializerInfoModel;
 import com.de314.kdt.models.SerializerInfoModel;
 import com.de314.kdt.services.DeserializerRegistryService;
+import com.de314.kdt.services.JsonToAvroConverter;
 import com.de314.kdt.services.SerializerRegistryService;
 import com.de314.kdt.services.impl.KafkaDeserializerRegistryService;
 import com.de314.kdt.services.impl.KafkaSerializerRegistryService;
@@ -11,6 +12,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.Maps;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
@@ -24,7 +26,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.io.IOException;
 import java.util.Base64;
-import java.util.UUID;
 import java.util.function.Function;
 
 @Configuration
@@ -50,22 +51,28 @@ public class MappingConfig {
     }
 
     @Bean
-    public SerializerRegistryService serializerRegistryService() {
+    public SerializerRegistryService serializerRegistryService(final JsonToAvroConverter jtaConverter) {
         SerializerRegistryService registry = new KafkaSerializerRegistryService();
 
-        registry.register(sim("string", StringSerializer.class, s -> s));
-        registry.register(sim("bytes", ByteArraySerializer.class, s -> s));
-        registry.register(sim("int", IntegerSerializer.class, s -> Integer.parseInt(s)));
-        registry.register(sim("long", LongSerializer.class, s -> Long.parseLong(s)));
+        registry.register(sim("string", StringSerializer.class, (s, req) -> s));
+        registry.register(sim("bytes", ByteArraySerializer.class, (s, req) -> s));
+        registry.register(sim("int", IntegerSerializer.class, (s, req) -> Integer.parseInt(s)));
+        registry.register(sim("long", LongSerializer.class, (s, req) -> Long.parseLong(s)));
+        registry.register(sim(
+                "avro",
+                "Avro Object Deserializer",
+                KafkaAvroSerializer.class,
+                (s, req) -> jtaConverter.convert(s, req.getMeta().getRawSchema())
+        ));
 
         return registry;
     }
 
-    private SerializerInfoModel sim(String id, Class<?> serializerClass, Function<String, Object> rawPrep) {
+    private SerializerInfoModel sim(String id, Class<?> serializerClass, SerializerInfoModel.DataPrepFunction rawPrep) {
         return sim(id, serializerClass.getSimpleName(), serializerClass, rawPrep);
     }
 
-    private SerializerInfoModel sim(String id, String name, Class<?> serializerClass, Function<String, Object> rawPrep) {
+    private SerializerInfoModel sim(String id, String name, Class<?> serializerClass, SerializerInfoModel.DataPrepFunction rawPrep) {
         return SerializerInfoModel.builder()
                 .id(id)
                 .name(name)
