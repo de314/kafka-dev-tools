@@ -60,6 +60,10 @@ public class ConsumerController {
     }
 
     private KDTConsumerConfig getConfig(String kEnvId, String topic, String deserializerId, KDTConsumerConfig.KDTConsumerGroupType type) throws RestException {
+        return getConfig(kEnvId, topic, deserializerId, type, null);
+    }
+
+    private KDTConsumerConfig getConfig(String kEnvId, String topic, String deserializerId, KDTConsumerConfig.KDTConsumerGroupType type, String filter) throws RestException {
         if (!consumersEnabled) {
             throw new RestException("Consumer Feature is not enabled.", HttpStatus.NOT_IMPLEMENTED);
         }
@@ -78,6 +82,7 @@ public class ConsumerController {
                 .kafkaEnvironment(kafkaEnv)
                 .keyDeserializer(StringDeserializer.class.getName())
                 .valueDeserializer(des)
+                .filter(filter)
                 .build();
     }
 
@@ -85,10 +90,11 @@ public class ConsumerController {
     public ResponseEntity<ConsumerResponse> stream(
             @PathVariable("topic") String topic,
             @RequestParam("env") String kEnvId,
-            @RequestParam("deserializerId") String deserializerId) {
+            @RequestParam("deserializerId") String deserializerId,
+            @RequestParam(value = "filter", required = false) String filter) {
         KDTConsumerConfig config = null;
         try {
-            config = getConfig(kEnvId, topic, deserializerId, STREAMING);
+            config = getConfig(kEnvId, topic, deserializerId, STREAMING, filter);
         } catch (RestException e) {
             return ResponseEntity.status(e.getStatus())
                     .header("KDT-Error", e.getMessage())

@@ -53,7 +53,7 @@ public class DefaultKafkaConsumerService implements KafkaConsumerService {
         String key = config.getId();
         if (!repo.containsKey(key)) {
             if (config.getHandler() == null) {
-                config.setHandler(new BasicInMemMessageQueue(100)); // TODO: configurable
+                config.setHandler(new BasicInMemMessageQueue(100, config.getFilter())); // TODO: configurable
             }
             KDTConsumerGroup consumer;
             if (config.getType() == null || config.getType() == KDTConsumerConfig.KDTConsumerGroupType.STREAMING) {

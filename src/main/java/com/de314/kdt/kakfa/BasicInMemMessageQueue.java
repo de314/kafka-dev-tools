@@ -10,7 +10,9 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -27,24 +29,30 @@ public class BasicInMemMessageQueue implements InMemMessageQueue {
     @Getter
     private long lastMessageTime;
     private MessageContainer peek;
+    private Optional<Pattern> filter;
 
-    public BasicInMemMessageQueue(int maxSize) {
+    public BasicInMemMessageQueue(int maxSize, String filter) {
+        this.filter = Optional.ofNullable(filter).map(Pattern::compile);
         messageQueue = new FixedSizeList<>(maxSize);
         lastReadTime = System.currentTimeMillis();
     }
 
     protected boolean shouldPersist(ConsumerRecord<String, Object> record) {
-        return true;
+        return filter.flatMap(
+                p -> Optional.ofNullable(record).map(
+                        r -> p.matcher(r.toString()).find()
+                )
+            ).orElse(true);
     }
 
     @Override
     public void handle(ConsumerRecord<String, Object> record) {
         if (!shouldPersist(record)) {
-            log.debug("(DROPPING) received => {}, queued => {}",total.get() + 1, messageQueue.spine.size());
+            log.trace("(DROPPING) received => {}, queued => {}",total.get() + 1, messageQueue.spine.size());
             return;
         }
-        log.debug("PROCESSING receiving => {}, queued => {}",total.get() + 1, messageQueue.spine.size());
         total.incrementAndGet();
+        log.trace("PROCESSING receiving => {}, queued => {}",total.get() + 1, messageQueue.spine.size());
         long currTime = System.currentTimeMillis();
         lastMessageTime = currTime;
         this.messageQueue.add(MessageContainer.builder()
@@ -96,6 +104,7 @@ public class BasicInMemMessageQueue implements InMemMessageQueue {
     }
 
     public void clear() {
+        log.info("Cleaning topic");
         total.set(0L);
         messageQueue.clear();
     }

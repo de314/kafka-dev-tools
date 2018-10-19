@@ -34,3 +34,5 @@ management:
 server:
   port: 10000
   context-path: /kdt
+
+logging.level.com.de314: DEBUG
