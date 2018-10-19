@@ -1,5 +1,6 @@
 package com.de314.kdt.controllers;
 
+import com.de314.kdt.config.KafkaDevToolsConfig;
 import com.de314.kdt.kakfa.InMemMessageQueue;
 import com.de314.kdt.kakfa.KDTConsumerGroup;
 import com.de314.kdt.models.ConsumerResponse;
@@ -35,14 +36,19 @@ public class ConsumerController {
     private final KafkaConsumerService kafkaConsumerService;
     private final ObjectMapper jsonObjectMapper;
 
+    private final boolean consumersEnabled;
+
     public ConsumerController(DeserializerRegistryService deserializerRegistryService,
             KafkaEnvironmentRegistryService kafkaEnvironmentRegistryService,
             KafkaConsumerService kafkaConsumerService,
-            ObjectMapper jsonObjectMapper) {
+            ObjectMapper jsonObjectMapper,
+            KafkaDevToolsConfig kafkaDevToolsConfig) {
         this.deserializerRegistryService = deserializerRegistryService;
         this.kafkaEnvironmentRegistryService = kafkaEnvironmentRegistryService;
         this.kafkaConsumerService = kafkaConsumerService;
         this.jsonObjectMapper = jsonObjectMapper;
+
+        consumersEnabled = kafkaDevToolsConfig.getConsumer().isEnabled();
     }
 
     @GetMapping("/poll/{topic}")
@@ -50,7 +56,11 @@ public class ConsumerController {
             @PathVariable("topic") String topic,
             @RequestParam("env") String kEnvId,
             @RequestParam("deserializerId") String deserializerId) {
-
+        if (!consumersEnabled) {
+            return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+                    .header("KDT-Error", "Consumer Feature is not enabled.")
+                    .body(null);
+        }
         SupportedEnvironment kafkaEnv = kafkaEnvironmentRegistryService.findById(kEnvId);
         if (kafkaEnv == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
