@@ -9,7 +9,7 @@ server:
   port: 8080
   context-path: /kdt
 
-kadmin:
+kbt:
   producer:
     enabled: true
   consumer:
@@ -17,7 +17,8 @@ kadmin:
   environments:
     customUrlsEnabled: true
     supportedEnvironments:
-      - name: Local
+      - id: local
+        name: Local
         kafkaHost: localhost:9092
         schemaUrl: http://localhost:8081
 

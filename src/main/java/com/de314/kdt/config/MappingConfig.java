@@ -67,7 +67,7 @@ public class MappingConfig {
 
     private SerializerInfoModel sim(String id, String name, Class<?> serializerClass, Function<String, Object> rawPrep) {
         return SerializerInfoModel.builder()
-                .id(UUID.randomUUID().toString())
+                .id(id)
                 .name(name)
                 .className(serializerClass.getName())
                 .meta(Maps.newHashMap())

@@ -11,11 +11,11 @@ import java.util.List;
  */
 public interface SchemaRegistryService {
 
-    List<String> findAll(String oUrl, boolean skipCache) throws SchemaRegistryRestException;
+    List<String> findAll(String kEnvId, boolean skipCache) throws SchemaRegistryRestException;
 
-    List<String> guessAllTopics(String oUrl, boolean skipCache) throws SchemaRegistryRestException;
+    List<String> guessAllTopics(String kEnvId, boolean skipCache) throws SchemaRegistryRestException;
 
-    SchemaInfoModel getInfo(String name, String oUrl, boolean skipCache) throws SchemaRegistryRestException;
+    SchemaInfoModel getInfo(String name, String kEnvId, boolean skipCache) throws SchemaRegistryRestException;
 
-    SchemaVersionModel getVersion(String name, int version, String oUrl, boolean skipCache) throws SchemaRegistryRestException;
+    SchemaVersionModel getVersion(String name, int version, String kEnvId, boolean skipCache) throws SchemaRegistryRestException;
 }

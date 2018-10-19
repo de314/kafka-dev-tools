@@ -3,7 +3,7 @@ package com.de314.kdt.services.impl;
 import com.de314.kdt.models.SchemaInfoModel;
 import com.de314.kdt.models.SchemaRegistryRestException;
 import com.de314.kdt.models.SchemaVersionModel;
-import com.de314.kdt.services.KafkaEnvironmentsService;
+import com.de314.kdt.services.KafkaEnvironmentRegistryService;
 import com.de314.kdt.services.SchemaRegistryService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,7 +12,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -33,10 +32,8 @@ public class DefaultSchemaRegistryService implements SchemaRegistryService {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private final String schemaRegistryUrl;
-
     private final RestTemplate restTemplate;
-    private final KafkaEnvironmentsService kafkaEnvironmentsService;
+    private final KafkaEnvironmentRegistryService kafkaEnvironmentRegistryService;
 
     private final Cache<String, List<String>> schemasCache;
     private final Cache<String, SchemaInfoModel> schemaInfoCache;
@@ -44,13 +41,10 @@ public class DefaultSchemaRegistryService implements SchemaRegistryService {
 
     @Autowired
     public DefaultSchemaRegistryService(
-            @Value("${schema.registry.url:http://localhost:8081}")
-                    String schemaRegistryUrl,
             RestTemplate restTemplate,
-            KafkaEnvironmentsService kafkaEnvironmentsService) {
+            KafkaEnvironmentRegistryService kafkaEnvironmentRegistryService) {
         this.restTemplate = restTemplate;
-        this.schemaRegistryUrl = schemaRegistryUrl;
-        this.kafkaEnvironmentsService = kafkaEnvironmentsService;
+        this.kafkaEnvironmentRegistryService = kafkaEnvironmentRegistryService;
 
         this.schemasCache = CacheBuilder.newBuilder()
                 .expireAfterWrite(30, TimeUnit.MINUTES)
@@ -66,11 +60,14 @@ public class DefaultSchemaRegistryService implements SchemaRegistryService {
     }
 
     @Override
-    public List<String> findAll(String url, boolean skipCache) throws SchemaRegistryRestException {
-       String  tempUrl = String.format("%s/subjects",
-                Optional.ofNullable(kafkaEnvironmentsService.getCustomSchemaUrl(url)).orElse(this.schemaRegistryUrl)
-        );
-        if (schemasCache.getIfPresent(tempUrl) == null || skipCache) {
+    public List<String> findAll(String kEnvKey, boolean skipCache) throws SchemaRegistryRestException {
+        String schemaUrl = Optional.ofNullable(kafkaEnvironmentRegistryService.findById(kEnvKey))
+                .map(env -> env.getSchemaUrl()).orElse(null);
+        if (schemaUrl == null) {
+            throw new SchemaRegistryRestException("Unknown environment: " + kEnvKey, 404);
+        }
+        schemaUrl += "/subjects";
+        if (schemasCache.getIfPresent(schemaUrl) == null || skipCache) {
             NodeConverter<List<String>> c = (node) -> {
                 if (node.isArray()) {
                     ArrayNode arr = (ArrayNode) node;
@@ -81,11 +78,11 @@ public class DefaultSchemaRegistryService implements SchemaRegistryService {
                 }
                 return null;
             };
-            schemasCache.put(tempUrl, proxyResponse(tempUrl, c, null));
+            schemasCache.put(schemaUrl, proxyResponse(schemaUrl, c, null));
         } else {
-            log.debug("Hit schema cache for: {}", tempUrl);
+            log.debug("Hit schema cache for: {}", schemaUrl);
         }
-        return schemasCache.getIfPresent(tempUrl);
+        return schemasCache.getIfPresent(schemaUrl);
     }
 
     @Override
@@ -96,12 +93,14 @@ public class DefaultSchemaRegistryService implements SchemaRegistryService {
     }
 
     @Override
-    public SchemaInfoModel getInfo(String name, String url, boolean skipCache) throws SchemaRegistryRestException {
-        String tempUrl = String.format("%s/subjects/%s/versions",
-                Optional.ofNullable(kafkaEnvironmentsService.getCustomSchemaUrl(url)).orElse(this.schemaRegistryUrl),
-                name
-        );
-        if (schemaInfoCache.getIfPresent(tempUrl) == null || skipCache) {
+    public SchemaInfoModel getInfo(String name, String kEnvKey, boolean skipCache) throws SchemaRegistryRestException {
+        String schemaUrl = Optional.ofNullable(kafkaEnvironmentRegistryService.findById(kEnvKey))
+                .map(env -> env.getSchemaUrl()).orElse(null);
+        if (schemaUrl == null) {
+            throw new SchemaRegistryRestException("Unknown environment: " + kEnvKey, 404);
+        }
+        schemaUrl += "/subjects/%s/versions";
+        if (schemaInfoCache.getIfPresent(schemaUrl) == null || skipCache) {
             NodeConverter<List<Integer>> c = (node) -> {
                 if (node.isArray()) {
                     ArrayNode arr = (ArrayNode) node;
@@ -111,27 +110,28 @@ public class DefaultSchemaRegistryService implements SchemaRegistryService {
                 }
                 return null;
             };
-            List<Integer> versions = proxyResponse(tempUrl, c, null);
-            SchemaVersionModel currSchema = getVersion(name, versions.get(versions.size() - 1), url, skipCache);
-            schemaInfoCache.put(tempUrl, SchemaInfoModel.builder()
+            List<Integer> versions = proxyResponse(schemaUrl, c, null);
+            SchemaVersionModel currSchema = getVersion(name, versions.get(versions.size() - 1), schemaUrl, skipCache);
+            schemaInfoCache.put(schemaUrl, SchemaInfoModel.builder()
                     .name(name)
                     .versions(versions)
                     .currSchema(currSchema)
                     .build());
         } else {
-            log.debug("Hit info cache for: {}", tempUrl);
+            log.debug("Hit info cache for: {}", schemaUrl);
         }
-        return schemaInfoCache.getIfPresent(tempUrl);
+        return schemaInfoCache.getIfPresent(schemaUrl);
     }
 
     @Override
-    public SchemaVersionModel getVersion(String name, int version, String url, boolean skipCache) throws SchemaRegistryRestException {
-        url = String.format("%s/subjects/%s/versions/%d",
-                Optional.ofNullable(kafkaEnvironmentsService.getCustomSchemaUrl(url)).orElse(this.schemaRegistryUrl),
-                name,
-                version
-        );
-        if (schemaVersionCache.getIfPresent(url) == null || skipCache) {
+    public SchemaVersionModel getVersion(String name, int version, String kEnvKey, boolean skipCache) throws SchemaRegistryRestException {
+        String schemaUrl = Optional.ofNullable(kafkaEnvironmentRegistryService.findById(kEnvKey))
+                .map(env -> env.getSchemaUrl()).orElse(null);
+        if (schemaUrl == null) {
+            throw new SchemaRegistryRestException("Unknown environment: " + kEnvKey, 404);
+        }
+        schemaUrl += "/subjects/%s/versions/%d";
+        if (schemaVersionCache.getIfPresent(schemaUrl) == null || skipCache) {
             NodeConverter<SchemaVersionModel> c = (node) -> {
                 if (node.isObject()) {
                     return SchemaVersionModel.builder()
@@ -143,11 +143,11 @@ public class DefaultSchemaRegistryService implements SchemaRegistryService {
                 }
                 return null;
             };
-            schemaVersionCache.put(url, proxyResponse(url, c, null));
+            schemaVersionCache.put(schemaUrl, proxyResponse(schemaUrl, c, null));
         } else {
-            log.debug("Hit version cache for: {}", url);
+            log.debug("Hit version cache for: {}", schemaUrl);
         }
-        return schemaVersionCache.getIfPresent(url);
+        return schemaVersionCache.getIfPresent(schemaUrl);
     }
 
     private <ResponseT> ResponseT proxyResponse(String url, NodeConverter<ResponseT> c, ResponseT defaultVal)

@@ -8,8 +8,9 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
-public class SupportedEnvironment {
+public class SupportedEnvironment implements Model {
 
+    private String id;
     private String name;
     private String kafkaHost;
     private String schemaUrl;

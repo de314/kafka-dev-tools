@@ -15,8 +15,8 @@ import java.util.List;
 @Data
 @Component
 @NoArgsConstructor
-@ConfigurationProperties(prefix="kadmin", ignoreInvalidFields = true)
-public class KadminConfig {
+@ConfigurationProperties(prefix="kbt", ignoreInvalidFields = true)
+public class KafkaDevToolsConfig {
 
     private KafkaProducerConfig producer;
     private KafkaProducerConfig consumer;
@@ -24,7 +24,6 @@ public class KadminConfig {
 
     @Data
     public static class KafkaEnvironmentsConfig {
-        private boolean customUrlsEnabled;
         private List<SupportedEnvironment> supportedEnvironments = Lists.newArrayList();
     }
 
