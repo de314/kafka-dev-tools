@@ -1,0 +1,34 @@
+endpoints.health.sensitive: false
+
+management:
+  health.defaults.enabled: false
+  port: 2442
+  security.enabled: false
+
+server:
+  port: 8080
+  context-path: /kdt
+
+kadmin:
+  producer:
+    enabled: true
+  consumer:
+    enabled: true
+  environments:
+    customUrlsEnabled: true
+    supportedEnvironments:
+      - name: Local
+        kafkaHost: localhost:9092
+        schemaUrl: http://localhost:8081
+
+---
+spring.profiles: local
+
+management:
+  health.defaults.enabled: false
+  port: 10000
+  security.enabled: false
+
+server:
+  port: 10000
+  context-path: /kdt
