@@ -15,6 +15,12 @@ public interface KDTConsumerGroup {
 
     String getGroupId();
 
+    void poll();
+
+    void poll(long pollTime);
+
+    void rewind();
+
     boolean isDead();
 
     void shutdown();

@@ -16,6 +16,12 @@ import org.codehaus.jackson.annotate.JsonIgnore;
 @AllArgsConstructor
 public class KDTConsumerConfig {
 
+    public enum KDTConsumerGroupType {
+        STREAMING,
+        SEEKING
+    }
+
+    private KDTConsumerGroupType type;
     private String topic;
     private SupportedEnvironment kafkaEnvironment;
     private String keyDeserializer;
@@ -24,8 +30,8 @@ public class KDTConsumerConfig {
     public String getId() {
         // TODO: add filter hash
         String filterHash = "not_implemented";
-        return String.format("%s@@%s@@%s@@%s",
-                kafkaEnvironment.getId(), topic, valueDeserializer.getId(), filterHash);
+        return String.format("%s@@%s@@%s@@%s@@%s",
+                type, kafkaEnvironment.getId(), topic, valueDeserializer.getId(), filterHash);
     }
 
     @JsonIgnore

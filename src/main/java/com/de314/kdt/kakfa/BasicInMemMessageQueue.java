@@ -26,6 +26,7 @@ public class BasicInMemMessageQueue implements InMemMessageQueue {
     private long lastReadTime;
     @Getter
     private long lastMessageTime;
+    private MessageContainer peek;
 
     public BasicInMemMessageQueue(int maxSize) {
         messageQueue = new FixedSizeList<>(maxSize);
@@ -56,7 +57,24 @@ public class BasicInMemMessageQueue implements InMemMessageQueue {
                 .build());
     }
 
-    public List<Object> get(Long since) {
+    public void setPeek(ConsumerRecord<String, Object> record) {
+        long currTime = System.currentTimeMillis();
+        lastMessageTime = currTime;
+        this.peek = MessageContainer.builder()
+                .key(record.key())
+                .message(record.value())
+                .offset(record.offset())
+                .partition(record.partition())
+                .topic(record.topic())
+                .writeTime(currTime)
+                .build();
+    }
+
+    public MessageContainer getPeek() {
+        return peek;
+    }
+
+    public List<MessageContainer> get(Long since) {
         lastReadTime = System.currentTimeMillis();
         return messageQueue.stream()
                 .filter(c -> isValidDate(since, c.getWriteTime()))

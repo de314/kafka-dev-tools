@@ -2,18 +2,17 @@ package com.de314.kdt.services.impl;
 
 import com.de314.kdt.config.KafkaDevToolsConfig;
 import com.de314.kdt.kakfa.BasicInMemMessageQueue;
-import com.de314.kdt.kakfa.BasicKafkaConsumerGroup;
+import com.de314.kdt.kakfa.SeekingConsumerGroup;
+import com.de314.kdt.kakfa.StreamingConsumerGroup;
 import com.de314.kdt.kakfa.KDTConsumerGroup;
 import com.de314.kdt.models.KDTConsumerConfig;
 import com.de314.kdt.models.Page;
 import com.de314.kdt.services.KafkaConsumerService;
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -56,9 +55,13 @@ public class DefaultKafkaConsumerService implements KafkaConsumerService {
             if (config.getHandler() == null) {
                 config.setHandler(new BasicInMemMessageQueue(100)); // TODO: configurable
             }
-            BasicKafkaConsumerGroup consumer = new BasicKafkaConsumerGroup(config);
+            KDTConsumerGroup consumer;
+            if (config.getType() == null || config.getType() == KDTConsumerConfig.KDTConsumerGroupType.STREAMING) {
+                consumer = new StreamingConsumerGroup(config).start();
+            } else {
+                consumer = new SeekingConsumerGroup(config);
+            }
             repo.put(key, consumer);
-            consumer.run();
         }
         return repo.get(key);
     }
