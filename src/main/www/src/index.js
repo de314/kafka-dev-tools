@@ -3,8 +3,8 @@ import ReactDOM from "react-dom";
 import store from "./rdx/store";
 import * as serviceWorker from "./serviceWorker";
 
-import { HashRouter as Router } from "react-router-dom";
-import App from "./App";
+import { HashRouter as Router, withRouter } from "react-router-dom";
+import App from "./ui/App";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import ReduxToastr from "react-redux-toastr";
@@ -14,17 +14,18 @@ import { ManagerService } from "./services/ManagerService";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "font-awesome/css/font-awesome.min.css";
 import "react-redux-toastr/lib/css/react-redux-toastr.min.css";
-import "./index.css";
 
 new ManagerService().fetchTopics();
+
+const ReactivePersistGate = withRouter(PersistGate);
 
 ReactDOM.render(
   <Router>
     <Provider store={store}>
       <div>
-        <PersistGate loading={null} persistor={store.persistor}>
+        <ReactivePersistGate loading={null} persistor={store.persistor}>
           <App />
-        </PersistGate>
+        </ReactivePersistGate>
         <ReduxToastr
           timeOut={4000}
           newestOnTop={false}
